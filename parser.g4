@@ -1,40 +1,26 @@
 parser grammar ExprParser;
 options { tokenVocab=ExprLexer; }
 
-game
-    : initialization command+;
+game: rules+;
 
-initialization
-    : INITIALIZE playerShipList;
+rules
+    : includeRule
+    | canRule
+    | canControlRule
+    | predatesRule
+    | mustRule
+    ;
 
-playerShipList
-    : playerShip (COMMA playerShip)*;
+includeRule : ID INCLUDE list_id;
 
-playerShip
-    : PLAYER ID EQUALS OBJECT ID;
+canRule : ID CAN list_id;
 
-command
-    : moveCommand
-    | rotateCommand
-    | fireCommand
-    | useCommand
-    | statusCommand
-    | winCommand;
+canControlRule: ID CAN_CONTROL list_id;
 
-moveCommand
-    : COMMAND ID MOVE ID TO NUMBER;
+predatesRule : ID PREDATES ID;
 
-rotateCommand
-    : COMMAND ID ROTATE ID TO ID;
+mustRule: ID MUST ID WHILE ID;
 
-fireCommand
-    : COMMAND ID FIRE ID TO ID;
 
-useCommand
-    : COMMAND ID USE ID TO ID;
+list_id: ID (COMMA ID)* ;
 
-statusCommand
-    : COMMAND ID STATUS ID;
-
-winCommand
-    : COMMAND ID WIN ID;

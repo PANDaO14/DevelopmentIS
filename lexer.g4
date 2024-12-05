@@ -1,22 +1,14 @@
 lexer grammar ExprLexer;
 
-INITIALIZE: 'initialize';
-COMMAND: 'command';
-MOVE: 'move';
-ROTATE: 'rotate';
-FIRE: 'fire';
-USE: 'use';
-STATUS: 'status';
-WIN: 'win';
-OBJECT: 'object';
-PLAYER: 'player';
+INCLUDE: 'include';
+MUST : 'must';
+WHILE : 'while' ;
+PREDATES: 'predates';
+CAN: 'can';
+CAN_CONTROL: 'can control';
 
-TO: 'to';
 COMMA: ',';
-COLON: ':';
-EQUALS: '=';
+SEMICOLON: ';';
 
-NUMBER: [0-9]+;
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
-
-WS: [ \t\r\n]+ -> skip;
+WS: [ \t\n\r\f]+ -> skip ;
