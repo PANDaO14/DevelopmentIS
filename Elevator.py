@@ -13,27 +13,32 @@ class Elevator:
     def get_direction(self) -> ElevatorDirection:
         return self._direction
 
-    def moveUp(self) -> None:
-        self._current_floor += 1
-        self._direction = ElevatorDirection.UP
-        self._movements += 1
-        print(f"Лифт #{self._elevator_id} поднялся на этаж {self._current_floor}")
-
-    def moveDown(self) -> None:
-        self._current_floor -= 1
-        self._direction = ElevatorDirection.DOWN
-        self._movements += 1
-        print(f"Лифт #{self._elevator_id} опустился на этаж {self._current_floor}")
+    def move(self, direction: ElevatorDirection) -> None:
+        actions = {
+            ElevatorDirection.UP: lambda: self._increment_floor(ElevatorDirection.UP),
+            ElevatorDirection.DOWN: lambda: self._increment_floor(ElevatorDirection.DOWN, -1)
+        }
+        actions[direction]()
 
     def stop(self) -> None:
         self._direction = ElevatorDirection.IDLE
         print(f"Лифт #{self._elevator_id} остановился на этаже {self._current_floor}")
 
     def open_door(self) -> None:
-        print(f"Лифт #{self._elevator_id} открывает свои двери")
+        print(f"Лифт #{self._elevator_id} открывает двери на этаже {self._current_floor}")
 
     def close_door(self) -> None:
-        print(f"Лифт #{self._elevator_id} закрывает свои двери")
+        print(f"Лифт #{self._elevator_id} закрывает двери на этаже {self._current_floor}")
 
     def get_movements(self) -> int:
         return self._movements
+
+    def _increment_floor(self, direction: ElevatorDirection, increment: int = 1) -> None:
+        direction_description = {
+            ElevatorDirection.UP: "поднялся",
+            ElevatorDirection.DOWN: "опустился"
+        }
+        self._current_floor += increment
+        self._direction = direction
+        self._movements += 1
+        print(f"Лифт #{self._elevator_id} {direction_description[direction]} на этаж {self._current_floor}")
