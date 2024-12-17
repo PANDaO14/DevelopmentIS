@@ -42,3 +42,4 @@ class Elevator:
         self._direction = direction
         self._movements += 1
         print(f"Лифт #{self._elevator_id} {direction_description[direction]} на этаж {self._current_floor}")
+        
