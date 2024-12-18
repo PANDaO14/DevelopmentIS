@@ -1,13 +1,13 @@
 from typing import Callable, Dict, List, Tuple
 from Elevator import Elevator
-from ElevatorDirection import ElevatorDirection
+from ElevatorState import ElevatorState
 
 class ElevatorSystem:
     def __init__(self, n_floor: int) -> None:
-        self._elevators: List[Elevator] = []
         self._n_floor = n_floor
-        self._requests: List[Tuple[int, str, int]] = []
-        self.table = self._generate_table()
+        self.elevators: List[Elevator] = []
+        self.requests: List[Tuple[int, int]] = []
+        self.state_table = self._generate_state_table()
 
     def _validate_floor(self, floor: int) -> None:
         validation = {
@@ -18,69 +18,84 @@ class ElevatorSystem:
         }
         validation[1 <= floor <= self._n_floor]()
 
-    def _generate_table(self) -> Dict[Tuple[str, str], Callable[[Elevator], None]]:
-        actions = {
-            "open": lambda e: e.open_door(),
-            "close": lambda e: e.close_door(),
-            "moveUp": lambda e: e.move(ElevatorDirection.UP),
-            "moveDown": lambda e: e.move(ElevatorDirection.DOWN),
-            "stop": lambda e: e.stop(),
-            "sameFloor": lambda e: self._handle_same_floor(e),
-        }
-
+    def _generate_state_table(self) -> Dict[Tuple[ElevatorState, str], Callable[[Elevator], None]]:
         return {
-            (direction, action): func
-            for direction in ["idle", "up", "down"]
-            for action, func in actions.items()
+            (ElevatorState.IDLE, "move_up"): lambda e: self._move(e, 1, ElevatorState.MOVING_UP),
+            (ElevatorState.IDLE, "move_down"): lambda e: self._move(e, -1, ElevatorState.MOVING_DOWN),
+            (ElevatorState.MOVING_UP, "move_up"): lambda e: self._move(e, 1, ElevatorState.MOVING_UP),
+            (ElevatorState.MOVING_DOWN, "move_down"): lambda e: self._move(e, -1, ElevatorState.MOVING_DOWN),
+            (ElevatorState.MOVING_UP, "stop"): lambda e: self._stop(e, ElevatorState.IDLE),
+            (ElevatorState.MOVING_DOWN, "stop"): lambda e: self._stop(e, ElevatorState.IDLE),
+            (ElevatorState.IDLE, "open_door"): lambda e: self._open_door(e),
+            (ElevatorState.DOOR_OPEN, "close_door"): lambda e: self._close_door(e),
+            (ElevatorState.IDLE, "stop"): lambda e: self._handle_same_floor(e),
         }
 
     def _handle_same_floor(self, elevator: Elevator) -> None:
-        print(f"Лифт #{elevator._elevator_id} уже на нужном этаже {elevator.get_current_floor()}.")
+        print(f"Лифт #{elevator.elevator_id} уже на нужном этаже {elevator.get_current_floor()}.")
+        elevator.state = ElevatorState.IDLE
+
+    def _move(self, elevator: Elevator, increment: int, next_state: ElevatorState) -> None:
+        self._validate_floor(elevator.get_current_floor() + increment)
+        elevator.increment_floor(increment)
+        elevator.state = next_state
+
+    def _stop(self, elevator: Elevator, next_state: ElevatorState) -> None:
+        elevator.stop()
+        elevator.state = next_state
+
+    def _open_door(self, elevator: Elevator) -> None:
         elevator.open_door()
+        elevator.state = ElevatorState.DOOR_OPEN
+
+    def _close_door(self, elevator: Elevator) -> None:
         elevator.close_door()
+        elevator.state = ElevatorState.IDLE
 
     def add_elevator(self, elevator: Elevator) -> None:
         self._validate_floor(elevator.get_current_floor())
-        self._elevators.append(elevator)
+        self.elevators.append(elevator)
 
-    def add_request(self, current_floor: int, direction: str, target_floor: int) -> None:
+    def add_request(self, current_floor: int, target_floor: int) -> None:
         self._validate_floor(current_floor)
         self._validate_floor(target_floor)
-        self._requests.append((current_floor, direction, target_floor))
+        self.requests.append((current_floor, target_floor))
 
     def process_requests(self) -> None:
-        for request in self._requests:
-            current_floor, direction, target_floor = request
+        for current_floor, target_floor in self.requests:
             elevator = self._find_nearest_elevator(current_floor)
-            print(f"Запрос (с {current_floor} по {target_floor})")
-            self._execute_actions(elevator, current_floor, target_floor)
+            print(f"\n(Запрос с этажа {current_floor} на этаж {target_floor})")
+
+            while elevator.get_current_floor() != current_floor:
+                action = {
+                    True: "move_up",
+                    False: "move_down"
+                }[current_floor > elevator.get_current_floor()]
+                self._execute_action(elevator, action)
+            self._execute_action(elevator, "stop")
+            self._execute_action(elevator, "open_door")
+            self._execute_action(elevator, "close_door")
+
+            while elevator.get_current_floor() != target_floor:
+                action = {
+                    True: "move_up",
+                    False: "move_down"
+                }[target_floor > elevator.get_current_floor()]
+                self._execute_action(elevator, action)
+            self._execute_action(elevator, "stop")
+            self._execute_action(elevator, "open_door")
+            self._execute_action(elevator, "close_door")
+
+    def _execute_action(self, elevator: Elevator, action: str) -> None:
+        key = (elevator.state, action)
+        try:
+            self.state_table[key](elevator)
+        except:
+            raise KeyError(f"Неверное действие {action} для состояния {elevator.state}")
 
     def _find_nearest_elevator(self, current_floor: int) -> Elevator:
-        return min(
-            self._elevators,
-            key=lambda e: abs(current_floor - e.get_current_floor())
-        )
-
-    def _execute_actions(self, elevator: Elevator, current_floor: int, target_floor: int) -> None:
-        path = [current_floor, target_floor]
-
-        action_map = {
-            True: ["stop", "open", "close"],
-            False: ["sameFloor"]
-        }
-
-        for floor in path:
-            while elevator.get_current_floor() != floor:
-                action = {
-                    True: "moveUp",
-                    False: "moveDown"
-                }[floor > elevator.get_current_floor()]
-                self.table[(elevator.get_direction().value, action)](elevator)
-
-            for action in action_map[current_floor != target_floor]:
-                self.table[(elevator.get_direction().value, action)](elevator)
-
+        return min(self.elevators, key=lambda e: abs(e.get_current_floor() - current_floor))
 
     def print_movements(self) -> None:
-        for elevator in self._elevators:
-            print(f"Лифт #{elevator._elevator_id} сделал {elevator.get_movements()} движений")
+        for elevator in self.elevators:
+            print(f"Лифт №{elevator.elevator_id} совершил {elevator.movements} перемещений")
