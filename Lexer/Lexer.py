@@ -32,7 +32,7 @@ class Lexer:
         return False
 
     def error(self, symbol, valid_symbols):
-        if symbol not in valid_symbols:
+        if not self.check(symbol, valid_symbols):
             raise ValueError("ERROR")
 
     def check(self, symbol, valid_symbols):

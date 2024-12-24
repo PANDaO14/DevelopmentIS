@@ -36,17 +36,16 @@ class LL1Parser:
             print(f"State: {self.current_state}\t Token: {current_token}\t Stack: {self.stack}")
 
             valid_tokens, next_state, attr1, attr2, attr3, attr4 = state_data
-            if not self.lexer.check(current_token, valid_tokens):
-                if attr4 == 0:
-                    print(f"Unexpected symbol '{current_token}', skipping to state {self.current_state + 1}")
-                    self.current_state += 1
-                    current_token = self.lexer.get_current_token()
-                    continue
+            if not self.lexer.check(current_token, valid_tokens) and attr4 == 0:
+                print(f"Unexpected symbol '{current_token}', skipping to state {self.current_state + 1}")
+                self.current_state += 1
+                current_token = self.lexer.get_current_token()
+                continue
 
             state_key = (attr1, attr2, attr3, attr4)
-            action_class = self.state_map[state_key]
-            action_instance = action_class(self.current_state, current_token, next_state, self.stack, self.lexer, valid_tokens)
-            self.current_state = action_instance.execute()
+            state_class = self.state_map[state_key]
+            state_instance = state_class(self.current_state, current_token, next_state, self.stack, self.lexer, valid_tokens)
+            self.current_state = state_instance.execute()
             current_token = self.lexer.get_current_token()
 
         print("Grammar is true")
